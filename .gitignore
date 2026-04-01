@@ -1,0 +1,16 @@
+# Build / IDE
+build/
+out/
+cmake-build-*/
+.vs/
+*.exe
+*.o
+*.obj
+*.dll
+*.lib
+*.so
+*.a
+
+# OS
+.DS_Store
+Thumbs.db
