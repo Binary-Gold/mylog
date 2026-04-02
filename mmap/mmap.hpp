@@ -17,22 +17,24 @@ namespace mmap {
         using fpath = std::filesystem::path;
         
         // 唯一入口
-        explicit MMapAux(fpath file_path);
+        explicit MMapAux(const fpath& file_path);
         // 析构
         ~MMapAux();
 
         // 设置大小
-        void Resize(uint64_t size);
+        void Resize(uint64_t new_size);
         // 获取大小
         uint64_t Size() const;
         // 获取数据指针
-        uint8_t* Data() const;
+        uint8_t* Data();
         // 清空
         void Clear();
         // 追加
         void Push(const void* data, uint64_t size);
         // 判空
         bool Empty() const { return Size() == 0; }
+        // 获取占用/空闲比例
+        double Ratio() const;
 
         // 删除拷贝
         MMapAux(const MMapAux&) = delete;
@@ -44,9 +46,12 @@ namespace mmap {
         // 初始化
         void Init_();
         // 向上取整倍数page字节数
-        static uint64_t GetValidCapacity(uint64_t size);
-        // 获取头指针
-        MMapHeader* Handle_() const;
+        static uint64_t GetValidCapacity_(uint64_t size);
+        // 获取整个数据段指针
+        uint8_t* Handle_();
+        // 获取头部信息指针
+        MMapHeader* Header_() { return std::as_const(*this).Header_(); }
+        MMapHeader* Header_() const;
         // 释放mamp
         void Unmap_();
         // 连接mmap,若未释放会先释放再赋值

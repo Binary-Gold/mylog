@@ -28,8 +28,7 @@ namespace fs {
         ~MMap();
 
         void Request(const Fd& fd, uint64_t size);
-        void* Data();
-        const void* Data() const;
+        void* Data() const;
     private:
         char* mmap_ptr_{nullptr};
         uint64_t size_{0};

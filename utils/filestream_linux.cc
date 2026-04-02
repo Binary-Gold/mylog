@@ -5,13 +5,12 @@
 
 #include <stdexcept>
 
-#include <filestream_linux.hpp>
+#include <utils/filestream_linux.hpp>
 
 namespace fs {
 
     Fd::Fd() {};
     Fd::Fd(const std::filesystem::path& path) {
-        // c20
         std::u8string u8str = path.u8string();
         const char* path_cstr = reinterpret_cast<const char*>(u8str.c_str());
         fd_ = ::open(path_cstr, O_RDWR | O_CREAT, 0644);
@@ -29,7 +28,6 @@ namespace fs {
         if (-1 != fd_) {
             throw std::runtime_error("double open");
         }
-        // c20
         std::u8string u8str = path.u8string();
         const char* path_cstr = reinterpret_cast<const char*>(u8str.c_str());
         fd_ = ::open(path_cstr, O_RDWR | O_CREAT, 0644);
@@ -59,6 +57,9 @@ namespace fs {
 
     MMap::MMap() {};
     MMap::MMap(const Fd& fd, uint64_t size) {
+        if (::ftruncate(fd.GetFd(), size) == -1) {
+            throw std::runtime_error("ftruncate failed");
+        }
         char *tmp_ptr_ = static_cast<char*>(::mmap(NULL, size,  PROT_READ | PROT_WRITE, MAP_SHARED, fd.GetFd(), 0));
         if (tmp_ptr_ == MAP_FAILED) {
             throw std::runtime_error("mmap failed"); 
@@ -78,6 +79,9 @@ namespace fs {
         if (mmap_ptr_) {
             throw std::runtime_error("double mmap");
         }
+        if (::ftruncate(fd.GetFd(), size) == -1) {
+            throw std::runtime_error("ftruncate failed");
+        }
         char *tmp_ptr_ = static_cast<char*>(::mmap(NULL, size,  PROT_READ | PROT_WRITE, MAP_SHARED, fd.GetFd(), 0));
         if (tmp_ptr_ == MAP_FAILED) {
             throw std::runtime_error("mmap failed"); 
@@ -86,15 +90,11 @@ namespace fs {
         mmap_ptr_ = tmp_ptr_;
     }
 
-    void* MMap::Data() {
-        return const_cast<void*>(std::as_const(*this).Data());
-    }
-
-    const void* MMap::Data() const {
+    void* MMap::Data() const {
         if (!mmap_ptr_) {
             throw std::runtime_error("Data failed");
         }
-        return  static_cast<const void*>(mmap_ptr_);
+        return  static_cast<void*>(mmap_ptr_);
     }
 
     uint64_t GetPageSize() {
