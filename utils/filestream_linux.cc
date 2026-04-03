@@ -1,6 +1,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <unistd.h> 
 #include <sys/mman.h>
 
 #include <stdexcept>
@@ -8,7 +8,6 @@
 #include <utils/filestream_linux.hpp>
 
 namespace fs {
-
     Fd::Fd() {};
     Fd::Fd(const std::filesystem::path& path) {
         std::u8string u8str = path.u8string();

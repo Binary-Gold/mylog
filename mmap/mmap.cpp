@@ -24,32 +24,26 @@ namespace mmap {
         Reserve_(std::max(kDefaultCapacity, imp_->fd_->GetFileSize()));
         Init_();
     }
-
     MMapAux::~MMapAux() = default;
 
     uint64_t MMapAux::Size() const {
         return Header_()->data_size_;
     }
-    
     void MMapAux::Resize(uint64_t new_size) {
         Reserve_(sizeof(MMapHeader) + new_size);
         Header_()->data_size_ = new_size;
     }
-
     uint8_t* MMapAux::Data() {
         return Handle_() + sizeof(MMapHeader);
     }
-
     void MMapAux::Clear() {
         Header_()->data_size_ = 0;
     }
-
     void MMapAux::Push(const void* data, uint64_t size) {
         Reserve_(sizeof(MMapHeader) + Size() + size);
         memcpy(Data() + Size(), data, size);
         Header_()->data_size_ = Size() + size;
     }
-
     double MMapAux::Ratio() const {
         if (imp_->capacity_ - sizeof(MMapHeader) == 0) {
             throw std::runtime_error("Ratio 0 error");
@@ -64,12 +58,10 @@ namespace mmap {
             header->data_size_ = 0;
         }
     }
-
     uint64_t MMapAux::GetValidCapacity_(uint64_t size) {
         uint64_t page_size = fs::GetPageSize();
         return (size + page_size - 1) / page_size * page_size;
     }
-
     void MMapAux::Reserve_(uint64_t new_size) {
         if (new_size <= imp_->capacity_) {
             return;
@@ -79,11 +71,9 @@ namespace mmap {
         Trymap_(valid_new_size);
         imp_->capacity_ = valid_new_size;
     }
-
     uint8_t* MMapAux::Handle_() {
         return static_cast<uint8_t*>(imp_->mmap_->Data());
     }
-
     MMapHeader* MMapAux::Header_() const {
         MMapHeader* header = static_cast<MMapHeader*>(imp_->mmap_->Data());
         if (header->magic_ != MMapHeader::kMagic) {
@@ -91,11 +81,9 @@ namespace mmap {
         }
         return header;
     }
-
     void MMapAux::Unmap_() {
         imp_->mmap_.reset(); 
     }
-
     void MMapAux::Trymap_(uint64_t valid_new_size ) {
         imp_->mmap_ = std::make_unique<fs::MMap>(*imp_->fd_, valid_new_size);
     }
