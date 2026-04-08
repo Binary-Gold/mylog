@@ -16,6 +16,9 @@ file(GLOB_RECURSE ALL_SOURCES
     "${ROOT_DIR}/*.cpp"
 )
 
+list(FILTER ALL_SOURCES EXCLUDE REGEX [[/build/]])
+list(FILTER ALL_SOURCES EXCLUDE REGEX [[/\\.git/]])
+
 set(LIB_SOURCES "")
 set(TEST_MAIN_SOURCES "")
 
@@ -26,9 +29,10 @@ foreach(src IN LISTS ALL_SOURCES)
     # 约定：
     # - 非 test/、tests/ 下的源码 -> 归入库 mylog
     # - test/**/main.cpp / tests/**/main.cpp -> 生成可执行
-    if(rel_path MATCHES ".*/(test|tests)/.*" AND fname STREQUAL "main.cpp")
+    # - (^|.*/)(test|tests)/ 匹配顶层 test/... 与 foo/test/...
+    if(rel_path MATCHES "(^|.*/)(test|tests)/" AND fname STREQUAL "main.cpp")
         list(APPEND TEST_MAIN_SOURCES "${src}")
-    elseif(NOT rel_path MATCHES ".*/(test|tests)/.*")
+    elseif(NOT rel_path MATCHES "(^|.*/)(test|tests)/")
         list(APPEND LIB_SOURCES "${src}")
     endif()
 endforeach()
@@ -58,5 +62,20 @@ if(MYLOG_BUILD_TESTS)
             target_compile_options(${exe_name} PRIVATE -Wall -Wextra -Wpedantic)
         endif()
     endforeach()
+
+    find_package(GTest CONFIG REQUIRED)
+    enable_testing()
+
+    add_executable(mylog_gtest_tests
+        "${ROOT_DIR}/test/test_space.cpp"
+    )
+    target_link_libraries(mylog_gtest_tests PRIVATE mylog GTest::gtest GTest::gtest_main)
+    target_include_directories(mylog_gtest_tests PRIVATE "${ROOT_DIR}")
+    if(NOT MSVC)
+        target_compile_options(mylog_gtest_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    include(GoogleTest)
+    gtest_discover_tests(mylog_gtest_tests)
 endif()
 
