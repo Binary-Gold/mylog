@@ -22,21 +22,31 @@ namespace threadpool {
         bool Start();
         void Stop();
 
+        // 提交普通任务：模板只打包 callable
+        template <typename F, typename... Args>
+        void RunTask(F&& f, Args&&... args) {
+            EnqueueTask_(std::function<void()>(
+                [b = std::bind(std::forward<F>(f), std::forward<Args>(args)...)]() mutable { b(); }));
+        }
 
     private:
-        void AddThread();
-
-        struct Imp;
-        std::unique_ptr<Imp> imp_;
-
+        using Task = std::function<void()>;
         using ThreadPtr = std::shared_ptr<std::thread>;
         struct ThreadInfo {
             ThreadInfo() = default;
+            ThreadInfo(ThreadPtr p) : ptr(p) {};
             ~ThreadInfo();
 
             ThreadPtr ptr{nullptr};
         };
         using ThreadInfoPtr = std::shared_ptr<ThreadInfo>;
-        using Task = std::function<void()>;
+
+        void EnqueueTask_(Task task);
+        void AddThread();
+
+        struct Imp;
+        std::unique_ptr<Imp> imp_;
+
+
     };
 }
