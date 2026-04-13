@@ -38,7 +38,7 @@ namespace threadpool{
         imp_->is_available_.store(true);
         uint32_t thread_count = imp_->thread_count_.load();
         for (uint32_t i = 0; i < thread_count; ++i) {
-            AddThread();
+            AddThread_();
         }
         return true;
     }
@@ -51,7 +51,7 @@ namespace threadpool{
         imp_->workers_.clear();
     }
 
-    void ThreadPool::AddThread() {
+    void ThreadPool::AddThread_() {
         auto func = [this]() {
             while (true) {
                 Task task;
