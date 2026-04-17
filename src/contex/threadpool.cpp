@@ -1,3 +1,8 @@
+#include <condition_variable>
+#include <atomic>
+#include <mutex>
+#include <thread>
+
 #include "context/threadpool.hpp"
 
 namespace context{
@@ -24,7 +29,7 @@ namespace context{
 
     void ThreadPool::EnqueueTask_(Task task) {
         {
-            std::unique_lock<std::mutex> lock(imp_->mtx_);
+            std::lock_guard<std::mutex> lock(imp_->mtx_);
             imp_->tasks_.emplace(std::move(task));
         }
         imp_->task_cv_.notify_one();
@@ -73,11 +78,5 @@ namespace context{
         };
         ThreadPtr th = std::make_shared<std::thread>(std::move(func));
         imp_->workers_.emplace_back(std::make_shared<ThreadInfo>(th));
-    }
-
-    ThreadPool::ThreadInfo::~ThreadInfo() {
-        if (ptr && ptr->joinable()) {
-            ptr->join();
-        }
     }
 }

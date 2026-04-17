@@ -35,6 +35,27 @@ namespace context {
         return ret;
     }
     void ExcutorTimer::Stop() {
+        imp_->running_.store(false);
+        imp_->cond_.notify_all();
+        imp_->thread_pool_.reset();
+    }
 
+    void ExcutorTimer::Run_() {
+        while (imp_->running_.load())
+        {
+            std::unique_lock lock(imp_->mtx_);
+            imp_->cond_.wait(lock, [this](){ return !this->imp_->queue_.empty(); });
+            auto s = imp_->queue_.top();
+            auto diff = s.time_point - std::chrono::high_resolution_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() > 0) {
+                imp_->cond_.wait_for(lock, diff);
+                continue;
+            } else {
+                imp_->queue_.pop();
+                lock.unlock();
+                s.task();
+            }
+        }
+        
     }
 }

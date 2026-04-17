@@ -1,17 +1,14 @@
 #pragma once
 
 #include <cstdint>
-#include <atomic>
 #include <vector>
 #include <queue>
 #include <memory>
-#include <mutex>
-#include <thread>
 #include <functional>
-#include <condition_variable>
 #include <future>
 #include <type_traits>
 
+#include "using.hpp"
 namespace context {
     class ThreadPool {
     public:
@@ -32,6 +29,7 @@ namespace context {
         }
         // 提交返回值任务
         template <typename F, typename... Args>
+        // todo: 类型萃取可深入 
         auto RunRetTask(F&& f, Args&&... args) -> std::future<std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>> {
             using ret_type = std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>;
             auto task = std::make_shared<std::packaged_task<ret_type()>>(
@@ -41,13 +39,12 @@ namespace context {
             return res;
         }
     private:
-        using Task = std::function<void()>;
         // todo: 这里需要优化，使用裸指针可能更好
         using ThreadPtr = std::shared_ptr<std::thread>;
         struct ThreadInfo {
             ThreadInfo() = default;
             ThreadInfo(ThreadPtr p) : ptr(p) {};
-            ~ThreadInfo();
+            ~ThreadInfo() { if (ptr && ptr->joinable()) { ptr->join(); } }
 
             ThreadPtr ptr{nullptr};
         };
