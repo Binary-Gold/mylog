@@ -1,17 +1,23 @@
+#include <mutex>
 #include <unordered_map>
 
-#include "context/excutor_context.hpp"
+#include "context/executor_context.hpp"
 
 namespace context{
-    struct ExcutorContext::Imp {
+    struct ExecutorContext::Imp {
         std::unordered_map<TaskRunnerTag, TaskRunnerPtr> task_runner_dict_;
         std::mutex mtx_;
     };
 
-    ExcutorContext::ExcutorContext() : imp_(std::make_unique<Imp>()) {};
-    ExcutorContext::~ExcutorContext() = default;
+    ExecutorContext::ExecutorContext() : imp_(std::make_unique<Imp>()) {}
+    ExecutorContext::~ExecutorContext() = default;
 
-    TaskRunnerTag ExcutorContext::AddTaskRunner(const TaskRunnerTag& tag) {
+    TaskRunnerTag ExecutorContext::GetNextRunnerTag_() {
+        static TaskRunnerTag s_counter = 0;
+        return ++s_counter;
+    }
+
+    TaskRunnerTag ExecutorContext::AddTaskRunner(const TaskRunnerTag& tag) {
         std::lock_guard<std::mutex> lock(imp_->mtx_);
         TaskRunnerTag latest_tag = tag;
         while (imp_->task_runner_dict_.find(latest_tag) != imp_->task_runner_dict_.end()) {
@@ -23,7 +29,7 @@ namespace context{
         return latest_tag;
     }
 
-    ExcutorContext::TaskRunner* ExcutorContext::GetTaskRunner_(const TaskRunnerTag& tag) {
+    ExecutorContext::TaskRunner* ExecutorContext::GetTaskRunner_(const TaskRunnerTag& tag) {
         std::lock_guard<std::mutex> lock(imp_->mtx_);
         if (imp_->task_runner_dict_.find(tag) == imp_->task_runner_dict_.end()) {
             return nullptr;

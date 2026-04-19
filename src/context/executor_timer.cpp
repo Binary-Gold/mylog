@@ -1,12 +1,14 @@
-#include <queue>
+#include <atomic>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
 #include <unordered_set>
 
-#include "context/excutor_timer.hpp"
+#include "context/executor_timer.hpp"
 #include "context/threadpool.hpp"
 
 namespace context {
-    struct ExcutorTimer::Imp {
+    struct ExecutorTimer::Imp {
         std::priority_queue<InternalS> queue_;
         std::mutex mtx_;
         std::condition_variable cond_;
@@ -16,31 +18,31 @@ namespace context {
         std::unordered_set<RepeatedTaskId> repeated_id_state_set_;
     };
 
-    ExcutorTimer::ExcutorTimer() :imp_(std::make_unique<Imp>()) {
+    ExecutorTimer::ExecutorTimer() :imp_(std::make_unique<Imp>()) {
         imp_->thread_pool_ = std::make_unique<ThreadPool>(1);
         imp_->repeated_task_id_.store(0);
         imp_->running_.store(false);
     };
-    ExcutorTimer::~ExcutorTimer() {
+    ExecutorTimer::~ExecutorTimer() {
         Stop();
     }
 
-    bool ExcutorTimer::Start() {
+    bool ExecutorTimer::Start() {
         if (imp_->running_.load()) {
             return true;
         }
         imp_->running_.store(true);
         bool ret = imp_->thread_pool_->Start();
-        imp_->thread_pool_->RunTask(&context::ExcutorTimer::Run_, this);
+        imp_->thread_pool_->RunTask(&context::ExecutorTimer::Run_, this);
         return ret;
     }
-    void ExcutorTimer::Stop() {
+    void ExecutorTimer::Stop() {
         imp_->running_.store(false);
         imp_->cond_.notify_all();
         imp_->thread_pool_.reset();
     }
 
-    void ExcutorTimer::Run_() {
+    void ExecutorTimer::Run_() {
         while (imp_->running_.load())
         {
             std::unique_lock lock(imp_->mtx_);
@@ -58,7 +60,7 @@ namespace context {
         }
     }
 
-    void ExcutorTimer::PostDelayedTask(Task task, const std::chrono::microseconds& delta) {
+    void ExecutorTimer::PostDelayedTask(Task task, const std::chrono::microseconds& delta) {
         InternalS s;
         s.time_point = std::chrono::high_resolution_clock::now() + delta;
         s.task = std::move(task);
@@ -69,19 +71,19 @@ namespace context {
         }
     }
 
-    RepeatedTaskId ExcutorTimer::PostRepeatedTask(Task task, const std::chrono::microseconds& delta, uint64_t repeat_num) {
+    RepeatedTaskId ExecutorTimer::PostRepeatedTask(Task task, const std::chrono::microseconds& delta, uint64_t repeat_num) {
         RepeatedTaskId id = GetNextRepeatedTaskId();
         imp_->repeated_id_state_set_.insert(id);
         PostRepeatedTask_(std::move(task), delta, id, repeat_num);
         return id;
     }
 
-    void ExcutorTimer::PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num) {
+    void ExecutorTimer::PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num) {
         if (imp_->repeated_id_state_set_.find(task_id) == imp_->repeated_id_state_set_.end() || repeat_num == 0) {
             return;
         }
         task();
-        Task func = std::bind(&ExcutorTimer::PostRepeatedTask_, this, std::move(task), delta, task_id, repeat_num - 1);
+        Task func = std::bind(&ExecutorTimer::PostRepeatedTask_, this, std::move(task), delta, task_id, repeat_num - 1);
         InternalS s;
         s.time_point = std::chrono::high_resolution_clock::now() + delta;
         s.repeated_id = imp_->repeated_task_id_;
@@ -93,10 +95,13 @@ namespace context {
         }
     }
 
-    void ExcutorTimer::CancleRepeatedTask(RepeatedTaskId task_id) {
+    RepeatedTaskId ExecutorTimer::GetNextRepeatedTaskId() {
+        return imp_->repeated_task_id_.fetch_add(1, std::memory_order_relaxed) + 1;
+    }
+
+    void ExecutorTimer::CancelRepeatedTask(RepeatedTaskId task_id) {
         imp_->repeated_id_state_set_.erase(task_id);
     }
 
-    
-
 }
+

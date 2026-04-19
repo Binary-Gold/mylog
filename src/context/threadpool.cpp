@@ -15,9 +15,9 @@ namespace context{
 
         std::atomic<uint32_t> thread_count_;
         std::atomic<bool> is_shutdown_;
-        std::atomic<bool> is_available_; 
+        std::atomic<bool> is_available_;
     };
-    
+
     ThreadPool::ThreadPool(uint32_t thread_count) : imp_(std::make_unique<Imp>()) {
         imp_->is_available_.store(false);
         imp_->is_shutdown_.store(false);

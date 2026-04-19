@@ -3,23 +3,23 @@
 #include <memory>
 
 #include "using.hpp"
-#include "excutor_timer.hpp"
+#include "executor_timer.hpp"
 #include "threadpool.hpp"
 
 namespace context {
-    class ExcutorContext {
+    class ExecutorContext {
     public:
-        ExcutorContext();
-        ~ExcutorContext();
+        ExecutorContext();
+        ~ExecutorContext();
 
-        ExcutorContext(const ExcutorContext&) = delete;
-        ExcutorContext& operator=(const ExcutorContext&) = delete;
+        ExecutorContext(const ExecutorContext&) = delete;
+        ExecutorContext& operator=(const ExecutorContext&) = delete;
 
         TaskRunnerTag AddTaskRunner(const TaskRunnerTag& tag);
     private:
         using TaskRunner = ThreadPool;
         using TaskRunnerPtr = std::unique_ptr<TaskRunner>;
-        friend class Excutor;
+        friend class Executor;
 
         TaskRunner* GetTaskRunner_(const TaskRunnerTag& tag);
         TaskRunnerTag GetNextRunnerTag_();

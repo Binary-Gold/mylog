@@ -30,7 +30,7 @@ Windows 可改用 Visual Studio 生成器或 Ninja，逻辑相同。
 | 路径 | 含义 |
 |------|------|
 | `include/` | 对外头文件（如 `mmap/`、`logging/`、`utils/`） |
-| `src/` | 库实现（`.cc`），与 `include` 下模块对应 |
+| `src/` | 库实现（`.cpp`），与 `include` 下模块对应 |
 | `test/` | 测试与带 `main` 的小程序：见下 |
 | `third_party/` | 第三方源码（当前为 fmt） |
 
