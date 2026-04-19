@@ -2,12 +2,10 @@
 
 namespace context {
     struct ExecutorManager::Imp {
-        std::unique_ptr<Executor> executor_;
+        std::unique_ptr<Executor> executor_ = std::make_unique<Executor>();
     };
 
-    ExecutorManager::ExecutorManager() : imp_(std::make_unique<Imp>()) {
-        imp_->executor_ = std::make_unique<Executor>();
-    }
+    ExecutorManager::ExecutorManager() : imp_(std::make_unique<Imp>()) {}
     ExecutorManager::~ExecutorManager() = default;
 
     Executor* ExecutorManager::GetExecutor() {

@@ -37,7 +37,7 @@ namespace context{
 
     bool ThreadPool::Start() {
         if (imp_->is_available_.load()) {
-            return false;
+            return true;
         }
         imp_->is_shutdown_.store(false);
         imp_->is_available_.store(true);

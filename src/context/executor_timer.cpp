@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 #include <unordered_set>
+#include <algorithm>
 
 #include "context/executor_timer.hpp"
 #include "context/threadpool.hpp"
@@ -50,7 +51,8 @@ namespace context {
             auto s = imp_->queue_.top();
             auto diff = s.time_point - std::chrono::high_resolution_clock::now();
             if (std::chrono::duration_cast<std::chrono::microseconds>(diff).count() > 0) {
-                imp_->cond_.wait_for(lock, diff);
+                const auto cap = std::chrono::duration_cast<std::chrono::high_resolution_clock::duration>(std::chrono::milliseconds(50));
+                imp_->cond_.wait_for(lock, std::min(diff, cap));
                 continue;
             } else {
                 imp_->queue_.pop();
@@ -63,10 +65,11 @@ namespace context {
     void ExecutorTimer::PostDelayedTask(Task task, const std::chrono::microseconds& delta) {
         InternalS s;
         s.time_point = std::chrono::high_resolution_clock::now() + delta;
+        s.repeated_id = 0;
         s.task = std::move(task);
         {
             std::lock_guard<std::mutex> lock(imp_->mtx_);
-            imp_->queue_.pop();
+            imp_->queue_.push(s);
             imp_->cond_.notify_all();
         }
     }
@@ -83,16 +86,20 @@ namespace context {
             return;
         }
         task();
-        Task func = std::bind(&ExecutorTimer::PostRepeatedTask_, this, std::move(task), delta, task_id, repeat_num - 1);
+        Task func = std::bind(&ExecutorTimer::PostTask_, this, std::move(task), delta, task_id, repeat_num - 1);
         InternalS s;
         s.time_point = std::chrono::high_resolution_clock::now() + delta;
-        s.repeated_id = imp_->repeated_task_id_;
-        s.task = std::move(task);
+        s.repeated_id = task_id;
+        s.task = std::move(func);
         {
             std::lock_guard<std::mutex> lock(imp_->mtx_);
-            imp_->queue_.pop();
+            imp_->queue_.push(s);
             imp_->cond_.notify_all();
         }
+    }
+
+    void ExecutorTimer::PostTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num) {
+        PostRepeatedTask_(std::move(task), delta, task_id, repeat_num);
     }
 
     RepeatedTaskId ExecutorTimer::GetNextRepeatedTaskId() {

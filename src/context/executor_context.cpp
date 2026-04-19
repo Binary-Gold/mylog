@@ -12,11 +12,6 @@ namespace context{
     ExecutorContext::ExecutorContext() : imp_(std::make_unique<Imp>()) {}
     ExecutorContext::~ExecutorContext() = default;
 
-    TaskRunnerTag ExecutorContext::GetNextRunnerTag_() {
-        static TaskRunnerTag s_counter = 0;
-        return ++s_counter;
-    }
-
     TaskRunnerTag ExecutorContext::AddTaskRunner(const TaskRunnerTag& tag) {
         std::lock_guard<std::mutex> lock(imp_->mtx_);
         TaskRunnerTag latest_tag = tag;
@@ -29,6 +24,11 @@ namespace context{
         return latest_tag;
     }
 
+    TaskRunnerTag ExecutorContext::GetNextRunnerTag_() {
+        static TaskRunnerTag s_counter = 0;
+        return ++s_counter;
+    }
+    
     ExecutorContext::TaskRunner* ExecutorContext::GetTaskRunner_(const TaskRunnerTag& tag) {
         std::lock_guard<std::mutex> lock(imp_->mtx_);
         if (imp_->task_runner_dict_.find(tag) == imp_->task_runner_dict_.end()) {

@@ -43,7 +43,7 @@ namespace context {
         using ThreadPtr = std::shared_ptr<std::thread>;
         struct ThreadInfo {
             ThreadInfo() = default;
-            ThreadInfo(ThreadPtr p) : ptr(p) {};
+            ThreadInfo(ThreadPtr p) : ptr(p) {}
             ~ThreadInfo() { if (ptr && ptr->joinable()) { ptr->join(); } }
 
             ThreadPtr ptr{nullptr};

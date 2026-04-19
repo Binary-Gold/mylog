@@ -7,15 +7,11 @@
 
 namespace context {
     struct Executor::Imp {
-        std::unique_ptr<ExecutorContext> executor_context_;
-        std::unique_ptr<ExecutorTimer> executor_timer_;
+        std::unique_ptr<ExecutorContext> executor_context_ = std::make_unique<ExecutorContext>();
+        std::unique_ptr<ExecutorTimer> executor_timer_ = std::make_unique<ExecutorTimer>();
     };
 
-    Executor::Executor() : imp_(std::make_unique<Imp>()) {
-        imp_->executor_context_ = std::make_unique<ExecutorContext>();
-        imp_->executor_timer_ = std::make_unique<ExecutorTimer>();
-    }
-
+    Executor::Executor() : imp_(std::make_unique<Imp>()) {}
     Executor::~Executor() = default;
 
     TaskRunnerTag Executor::AddTaskRunner(const TaskRunnerTag& tag) {
