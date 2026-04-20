@@ -27,12 +27,17 @@ namespace context{
         Stop();
     }
 
-    void ThreadPool::EnqueueTask_(Task task) {
+    bool ThreadPool::EnqueueTask_(Task task) {
+        if (imp_->is_shutdown_.load() || (!imp_->is_available_.load())) {
+            return false;
+        }
+
         {
             std::lock_guard<std::mutex> lock(imp_->mtx_);
             imp_->tasks_.emplace(std::move(task));
         }
         imp_->task_cv_.notify_one();
+        return true;
     }
 
     bool ThreadPool::Start() {

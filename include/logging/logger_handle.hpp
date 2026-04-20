@@ -1,21 +1,31 @@
-#ifndef LOGGER_HANDLE_HPP
-#define LOGGER_HANDLE_HPP
+#pragma once
 
 #include <string_view>
 
-#include "logging/logger_config.hpp"
+#include "logger_config.hpp"
+#include "using.hpp"
 
 namespace logger {
 class LogHandle {
 public:
-    LogHandle() = default;
-    ~LogHandle() = default;
+    explicit LogHandle(LogSinkPtrList sinks);
+    explicit LogHandle(LogSinkPtr sink);
+    template<typename It>
+    LogHandle(It begin, It end) : LogHandle(LogSinkPtrList(begin, end)) {}
+    ~LogHandle();
+
+    LogHandle(const LogHandle&) = delete;
+    LogHandle& operator=(const LogHandle&) = delete;
+
+    void SetLevel(LogLevel level);
+    LogLevel GetLevel() const;
 
     void Log(LogLevel lvl, SourceLocation loc, std::string_view msg);
-
+protected:
+    void Log_(const LogMsg& log_msg);
+    bool ShouldLog_(LogLevel level) const noexcept;
 private:
-    void Log_(const LogMsg& msg);
+    struct Imp;
+    std::unique_ptr<Imp> imp_;
 };
-}  // namespace logger
-
-#endif  // LOGGER_HANDLE_HPP
+} 

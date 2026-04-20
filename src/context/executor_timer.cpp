@@ -44,10 +44,13 @@ namespace context {
     }
 
     void ExecutorTimer::Run_() {
-        while (imp_->running_.load())
+        while (true)
         {
             std::unique_lock lock(imp_->mtx_);
-            imp_->cond_.wait(lock, [this](){ return !this->imp_->queue_.empty(); });
+            imp_->cond_.wait(lock, [this](){ return (!imp_->running_.load()) || (!this->imp_->queue_.empty()); });
+            if (imp_->running_.load() == false) {
+                break;
+            }
             auto s = imp_->queue_.top();
             auto diff = s.time_point - std::chrono::high_resolution_clock::now();
             if (std::chrono::duration_cast<std::chrono::microseconds>(diff).count() > 0) {

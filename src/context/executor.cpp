@@ -19,6 +19,10 @@ namespace context {
     }
     void Executor::PostTask(const TaskRunnerTag& tag, Task task) {
         ExecutorContext::TaskRunner* task_runner = imp_->executor_context_->GetTaskRunner_(tag);
+        if (task_runner == nullptr) {
+            // todo throw?
+            return;
+        }
         task_runner->RunTask(std::move(task));
     }
 

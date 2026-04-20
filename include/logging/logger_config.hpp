@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string_view>
 
+#include "using.hpp"
+
 namespace logger {
 struct SourceLocation {
     constexpr SourceLocation() = default;
@@ -28,13 +30,13 @@ struct SourceLocation {
 };
 
 enum class LogLevel {
-    kTrace = LOGGER_LEVEL_TRACE,
-    kDebug = LOGGER_LEVEL_DEBUG,
-    kInfo = LOGGER_LEVEL_INFO,
-    kWarning = LOGGER_LEVEL_WARN,
-    kError = LOGGER_LEVEL_ERROR,
-    kCritical = LOGGER_LEVEL_CRITICAL,
-    kNone = LOGGER_LEVEL_OFF,
+  kTrace = LOGGER_LEVEL_TRACE,
+  kDebug = LOGGER_LEVEL_DEBUG,
+  kInfo = LOGGER_LEVEL_INFO,
+  kWarn = LOGGER_LEVEL_WARN,
+  kError = LOGGER_LEVEL_ERROR,
+  kFatal = LOGGER_LEVEL_CRITICAL,
+  kOff = LOGGER_LEVEL_OFF
 };
 
 struct LogMsg {
