@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include "using.hpp"
+#include "logging/using.hpp"
 
 namespace logger {
 struct SourceLocation {

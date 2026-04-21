@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "logger_config.hpp"
-#include "formatter.hpp"
+#include "logging/formatter.hpp"
+#include "logging/logger_config.hpp"
 
 namespace logger {
     class LogSink {

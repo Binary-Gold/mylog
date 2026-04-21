@@ -11,6 +11,7 @@ option(MYLOG_BUILD_TESTS "Build test executables" ON)
 set(ROOT_DIR "${PROJECT_SOURCE_DIR}")
 
 add_subdirectory(third_party/fmt)
+find_package(ZLIB REQUIRED)
 
 file(GLOB_RECURSE ALL_SOURCES
     CONFIGURE_DEPENDS
@@ -50,6 +51,7 @@ endif()
 add_library(mylog STATIC ${LIB_SOURCES})
 target_include_directories(mylog PUBLIC "${ROOT_DIR}/include")
 target_link_libraries(mylog PUBLIC fmt::fmt)
+target_link_libraries(mylog PUBLIC ZLIB::ZLIB)
 
 if(NOT MSVC)
     target_compile_options(mylog PRIVATE -Wall -Wextra -Wpedantic)

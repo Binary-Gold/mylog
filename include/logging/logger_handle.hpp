@@ -2,8 +2,8 @@
 
 #include <string_view>
 
-#include "logger_config.hpp"
-#include "using.hpp"
+#include "logging/logger_config.hpp"
+#include "logging/using.hpp"
 
 namespace logger {
 class LogHandle {
