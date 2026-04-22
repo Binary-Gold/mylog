@@ -1,32 +1,27 @@
-#pragma once 
-
-#include <memory>
-#include <zlib.h>
+#include <zstd.h>
 
 #include "compress/compress.hpp"
 
 namespace compression {
-    struct ZStreamDeflateDeleter {
-        void operator()(z_stream* stream) {
+    struct ZStreamCompressDeleter {
+        void operator()(ZSTD_CStream* stream) {
             if (stream) {
-                deflateEnd(stream);
-                delete stream;
-            }
-        }
-    };
-
-    struct ZStreamInflateDeleter {
-        void operator()(z_stream* stream) {
-            if (stream) {
-                inflateEnd(stream);
-                delete stream;
+                ZSTD_freeCStream(stream);
             }
         }
     };
     
-    class ZlibCompress final : public Compression {
+    struct ZStreamDecompressDeleter {
+        void operator()(ZSTD_DStream* stream) {
+            if (stream) {
+                ZSTD_freeDStream(stream);
+            }
+        }
+    };
+    
+    class ZstdCompress final : public Compression {
     public:
-        ~ZlibCompress();
+        ~ZstdCompress();
 
         size_t Compress(const void* input, size_t input_size, void* output, size_t output_size) override;
         size_t CompressedBound(size_t input_size) override;
@@ -34,7 +29,8 @@ namespace compression {
         void ResetStream() override;
     private:
         void ResetUncompressStream_();
+        
         struct Imp;
         std::unique_ptr<Imp> imp_;
-    };
+    }
 }

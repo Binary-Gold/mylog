@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <string>
 
-namespace compress {
+namespace compression {
     class Compression {
     public:
         virtual ~Compression() = default;
