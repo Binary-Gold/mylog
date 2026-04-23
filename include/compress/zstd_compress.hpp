@@ -1,4 +1,5 @@
 #include <zstd.h>
+#include <memory>
 
 #include "compress/compress.hpp"
 
@@ -32,5 +33,5 @@ namespace compression {
         
         struct Imp;
         std::unique_ptr<Imp> imp_;
-    }
+    };
 }
