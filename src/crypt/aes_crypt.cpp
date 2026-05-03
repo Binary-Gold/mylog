@@ -12,8 +12,7 @@
 #include "../../third_party/cryptopp/oids.h"
 #include "../../third_party/cryptopp/osrng.h"
 
-namespace logger {
-namespace crypt {
+namespace logcrypt {
     struct AESCrypt::Imp {
         std::string key_;
         std::string iv_;
@@ -81,5 +80,4 @@ namespace crypt {
     std::string AESCrypt::GenerateIV() {
         return detail::GenerateIV();
     }
-}  // namespace crypt
-}  // namespace logger
+}  // namespace logcrypt

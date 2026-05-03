@@ -10,8 +10,7 @@
 #include "../../third_party/cryptopp/oids.h"
 #include "../../third_party/cryptopp/osrng.h"
 
-namespace logger {
-namespace crypt {
+namespace logcrypt {
     using CryptoPP::byte;
 
     std::string BinaryKeyToHex(const std::string& binary_key) {
@@ -53,5 +52,4 @@ namespace crypt {
         }
         return std::string(reinterpret_cast<const char*>(shared.data()), shared.size());
     }
-}  // namespace crypt
-}  // namespace logger
+}  // namespace logcrypt

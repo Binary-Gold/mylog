@@ -6,6 +6,7 @@
 
 - C++20 编译器
 - [fmt](https://github.com/fmtlib/fmt)：仓库内 `third_party/fmt`，由 CMake `add_subdirectory` 构建
+- [Crypto++](https://www.cryptopp.com/)：源码方式集成，放在 `third_party/cryptopp`
 - 测试（可选）：GoogleTest，`MYLOG_BUILD_TESTS=ON` 时通过 `find_package(GTest CONFIG REQUIRED)`，需本机已安装或通过包管理提供 CMake 配置
 
 ## 构建
@@ -24,6 +25,19 @@ ctest --test-dir build
 ```
 
 Windows 可改用 Visual Studio 生成器或 Ninja，逻辑相同。
+
+Crypto++ 源码集成准备（首次）：
+
+```bash
+# 1) 拉取 Crypto++ 源码到 third_party
+git clone https://github.com/weidai11/cryptopp.git third_party/cryptopp
+```
+
+如需临时关闭 Crypto++ 集成，可配置：
+
+```bash
+-DMYLOG_USE_CRYPTOPP=OFF
+```
 
 ## 目录说明
 

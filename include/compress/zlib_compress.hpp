@@ -26,6 +26,7 @@ namespace compression {
     
     class ZlibCompress final : public Compression {
     public:
+        ZlibCompress();
         ~ZlibCompress();
 
         size_t Compress(const void* input, size_t input_size, void* output, size_t output_size) override;

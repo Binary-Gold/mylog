@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// 使用 LITE 运行时：生成更小的 C++ 代码，适合集成与轻量场景
+option optimize_for = LITE_RUNTIME;
+
+message EffectiveMsg {
+  int32 level = 1;
+  int64 timestamp = 2;
+  int32 pid = 3;
+  int32 tid = 4;
+  int32 line = 5;
+  string file_name = 6;
+  string func_name = 7;
+  string log_info = 8;
+}

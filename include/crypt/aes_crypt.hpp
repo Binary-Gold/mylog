@@ -5,8 +5,7 @@
 
 #include "crypt/crypt.hpp"
 
-namespace logger {
-namespace crypt {
+namespace logcrypt {
     class AESCrypt final : public Crypt {
     public:
         explicit AESCrypt(std::string key);
@@ -22,5 +21,4 @@ namespace crypt {
         struct Imp;
         std::unique_ptr<Imp> imp_;
     };
-}  // namespace crypt
-}  // namespace logger
+}  // namespace logcrypt

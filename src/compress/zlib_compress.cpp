@@ -3,7 +3,6 @@
 
 #include "compress/zlib_compress.hpp"
 
-// todo 研究一下
 namespace compression {
     struct ZlibCompress::Imp
     {
@@ -11,6 +10,7 @@ namespace compression {
         std::unique_ptr<z_stream, ZStreamInflateDeleter> decompress_stream_;
     };
 
+    ZlibCompress::ZlibCompress() : imp_(std::make_unique<Imp>()) {}
     ZlibCompress::~ZlibCompress() = default;
 
     size_t ZlibCompress::Compress(const void* input, size_t input_size, void* output, size_t output_size) {
