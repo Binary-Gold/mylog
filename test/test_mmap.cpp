@@ -1,12 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <cstdint>
-#include <filesystem>
-#include <string>
-#include <unistd.h>
+#include <cstring>
 
-#include "mmap/mmap.hpp"
-#include "utils/filestream_linux.hpp"
+#include "logger/mmap/mmap.hpp"
+#include "logger/utils/filestream_linux.hpp"
 
 namespace {
 
@@ -28,36 +25,68 @@ protected:
     static inline std::uint64_t counter_ = 0;
 };
 
-TEST_F(FsAndMMapTest, PageSizeIsPositive) {
-    EXPECT_GT(fs::GetPageSize(), 0u);
+// ==================== Fd 测试 ====================
+
+TEST_F(FsAndMMapTest, FdConstructOpensFile) {
+    logger::fs::Fd fd(file_path_);
+    EXPECT_GE(fd.GetFd(), 0);                    // fd 有效
+    EXPECT_TRUE(std::filesystem::exists(file_path_)); // 文件被创建
 }
 
-TEST_F(FsAndMMapTest, DefaultFdGetFdThrows) {
-    fs::Fd fd;
-    EXPECT_THROW(fd.GetFd(), std::runtime_error);
+TEST_F(FsAndMMapTest, FdEmptyFileSizeIsZero) {
+    logger::fs::Fd fd(file_path_);
+    EXPECT_EQ(fd.GetFileSize(), 0u);             // 新文件大小为 0
 }
 
-TEST_F(FsAndMMapTest, OpenedFdCanQueryFileSize) {
-    fs::Fd fd(file_path_);
-    EXPECT_GE(fd.GetFd(), 0);
-    EXPECT_EQ(fd.GetFileSize(), 0u);
+// ==================== MMap 测试 ====================
+
+TEST_F(FsAndMMapTest, MMapConstructMapsMemory) {
+    logger::fs::Fd fd(file_path_);
+    logger::fs::MMap mm(fd, 4096);
+    EXPECT_NO_THROW(mm.Data());                  // Data() 不抛异常
+}
+// ==================== GetPageSize 测试 ====================
+
+TEST_F(FsAndMMapTest, GetPageSize) {
+    EXPECT_GE(logger::fs::GetPageSize(), 1);                  
 }
 
-TEST_F(FsAndMMapTest, DoubleOpenThrows) {
-    fs::Fd fd(file_path_);
-    EXPECT_THROW(fd.Open(file_path_), std::runtime_error);
+// ==================== MMapAux 测试 ====================
+
+TEST_F(FsAndMMapTest, MMapAuxNewlyCreatedIsEmpty) {
+    logger::mmap::MMapAux mm(file_path_);
+    EXPECT_TRUE(mm.Empty());
+    EXPECT_EQ(mm.Size(), 0u);
 }
 
-TEST_F(FsAndMMapTest, DefaultMMapDataThrows) {
-    fs::MMap mm;
-    EXPECT_THROW(mm.Data(), std::runtime_error);
+TEST_F(FsAndMMapTest, MMapAuxPushIncreasesSize) {
+    logger::mmap::MMapAux mm(file_path_);
+    std::string data = "hello";
+    mm.Push(data.c_str(), data.size());
+    EXPECT_EQ(mm.Size(), 5u);
 }
 
-TEST_F(FsAndMMapTest, MMapAuxCtorWorks) {
-    EXPECT_NO_THROW({
-        mmap::MMapAux mm(file_path_);
-        EXPECT_TRUE(mm.Empty());
-    });
+TEST_F(FsAndMMapTest, MMapAuxPushDataReadBack) {
+    logger::mmap::MMapAux mm(file_path_);
+    std::string data = "hello mmap";
+    mm.Push(data.c_str(), data.size());
+    EXPECT_EQ(std::memcmp(mm.Data(), data.c_str(), data.size()), 0);
+}
+
+TEST_F(FsAndMMapTest, MMapAuxClearMakesEmpty) {
+    logger::mmap::MMapAux mm(file_path_);
+    mm.Push("x", 1);
+    mm.Clear();
+    EXPECT_TRUE(mm.Empty());
+    EXPECT_EQ(mm.Size(), 0u);
+}
+
+TEST_F(FsAndMMapTest, MMapAuxMultiplePushAccumulates) {
+    logger::mmap::MMapAux mm(file_path_);
+    mm.Push("abc", 3);
+    mm.Push("def", 3);
+    EXPECT_EQ(mm.Size(), 6u);
+    EXPECT_EQ(std::memcmp(mm.Data(), "abcdef", 6), 0);
 }
 
 }  // namespace

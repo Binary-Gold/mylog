@@ -36,6 +36,15 @@ set(ZSTD_BUILD_TESTS OFF CACHE BOOL "Disable zstd tests" FORCE)
 mylog_add_subdirectory_quiet(third_party/zstd/build/cmake)
 
 if(MYLOG_USE_PROTOBUF)
+    # abseil-cpp 已缓存在 protobuf/build/_deps/ 中，提前导入避免 protobuf FetchContent 联网下载
+    if(NOT TARGET absl::strings)
+        set(ABSL_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+        set(ABSL_BUILD_TEST_HELPERS OFF CACHE BOOL "" FORCE)
+        set(ABSL_USE_EXTERNAL_GOOGLETEST ON CACHE BOOL "" FORCE)
+        set(ABSL_FIND_GOOGLETEST OFF CACHE BOOL "" FORCE)
+        mylog_add_subdirectory_quiet(third_party/protobuf/build/_deps/absl-src)
+    endif()
+
     set(protobuf_BUILD_TESTS OFF CACHE BOOL "Disable protobuf tests" FORCE)
     set(protobuf_BUILD_EXAMPLES OFF CACHE BOOL "Disable protobuf examples" FORCE)
     set(protobuf_BUILD_CONFORMANCE OFF CACHE BOOL "Disable protobuf conformance tests" FORCE)
@@ -75,39 +84,17 @@ if(MYLOG_USE_CRYPTOPP)
     endif()
 endif()
 
-file(GLOB_RECURSE ALL_SOURCES
+file(GLOB_RECURSE LIB_SOURCES
     CONFIGURE_DEPENDS
-    "${ROOT_DIR}/src/*.cc"
-    "${ROOT_DIR}/src/*.cpp"
-    "${ROOT_DIR}/test/*.cc"
-    "${ROOT_DIR}/test/*.cpp"
+    "${ROOT_DIR}/src/logger/*.cc"
+    "${ROOT_DIR}/src/logger/*.cpp"
 )
 
-list(FILTER ALL_SOURCES EXCLUDE REGEX [[/build/]])
-list(FILTER ALL_SOURCES EXCLUDE REGEX [[/\\.git/]])
-# 第三方库由各自 CMake 构建，不参与全局 GLOB
-list(FILTER ALL_SOURCES EXCLUDE REGEX [[/third_party/]])
-
-set(LIB_SOURCES "")
-set(TEST_MAIN_SOURCES "")
-
-foreach(src IN LISTS ALL_SOURCES)
-    file(RELATIVE_PATH rel_path "${ROOT_DIR}" "${src}")
-    get_filename_component(fname "${src}" NAME)
-
-    # 约定：
-    # - 非 test/、tests/ 下的源码 -> 归入库 mylog
-    # - test/**/main.cpp / tests/**/main.cpp -> 生成可执行
-    # - (^|.*/)(test|tests)/ 匹配顶层 test/... 与 foo/test/...
-    if(rel_path MATCHES "(^|.*/)(test|tests)/" AND fname STREQUAL "main.cpp")
-        list(APPEND TEST_MAIN_SOURCES "${src}")
-    elseif(NOT rel_path MATCHES "(^|.*/)(test|tests)/")
-        list(APPEND LIB_SOURCES "${src}")
-    endif()
-endforeach()
+list(FILTER LIB_SOURCES EXCLUDE REGEX [[/build/]])
+list(FILTER LIB_SOURCES EXCLUDE REGEX [[/\\.git/]])
 
 if(LIB_SOURCES STREQUAL "")
-    message(FATAL_ERROR "No library sources found. Expected *.cc/*.cpp under src/.")
+    message(FATAL_ERROR "No library sources found. Expected *.cc/*.cpp under src/logger/.")
 endif()
 
 add_library(mylog STATIC ${LIB_SOURCES})
@@ -123,12 +110,12 @@ if(MYLOG_USE_PROTOBUF)
     )
     # 生成头目录按 system include 处理，弱化 protoc 生成 .pb.h 被 -Wall 牵连的告警
     target_include_directories(mylog SYSTEM PRIVATE
-        "${ROOT_DIR}/src/protobuf"
+        "${ROOT_DIR}/src/logger/proto"
     )
     target_compile_definitions(mylog PUBLIC MYLOG_USE_PROTOBUF=1)
 
     # protoc 生成的 .pb.cc 常触发 -Wpedantic / conversion 等；仅对该文件关闭告警
-    file(GLOB MYLOG_PROTOBUF_GEN_CC CONFIGURE_DEPENDS "${ROOT_DIR}/src/protobuf/*.pb.cc")
+    file(GLOB MYLOG_PROTOBUF_GEN_CC CONFIGURE_DEPENDS "${ROOT_DIR}/src/logger/proto/*.pb.cc")
     if(MYLOG_PROTOBUF_GEN_CC)
         if(MSVC)
             set_source_files_properties(${MYLOG_PROTOBUF_GEN_CC} PROPERTIES COMPILE_OPTIONS "/W0")
@@ -148,34 +135,7 @@ if(NOT MSVC)
 endif()
 
 if(MYLOG_BUILD_TESTS)
-    foreach(main_src IN LISTS TEST_MAIN_SOURCES)
-        file(RELATIVE_PATH rel_path "${ROOT_DIR}" "${main_src}")
-        string(REPLACE "/" "_" exe_name "${rel_path}")
-        string(REGEX REPLACE "\\.(cc|cpp)$" "" exe_name "${exe_name}")
-
-        add_executable(${exe_name} "${main_src}")
-        target_link_libraries(${exe_name} PRIVATE mylog)
-        target_include_directories(${exe_name} PRIVATE "${ROOT_DIR}/include")
-
-        if(NOT MSVC)
-            target_compile_options(${exe_name} PRIVATE -Wall -Wextra -Wpedantic)
-        endif()
-    endforeach()
-
-    find_package(GTest CONFIG REQUIRED)
     enable_testing()
-
-    add_executable(mylog_gtest_tests
-        "${ROOT_DIR}/test/test_space.cpp"
-        "${ROOT_DIR}/test/test_mmap.cpp"
-    )
-    target_link_libraries(mylog_gtest_tests PRIVATE mylog GTest::gtest GTest::gtest_main)
-    target_include_directories(mylog_gtest_tests PRIVATE "${ROOT_DIR}/include")
-    if(NOT MSVC)
-        target_compile_options(mylog_gtest_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-
-    include(GoogleTest)
-    gtest_discover_tests(mylog_gtest_tests DISCOVERY_MODE PRE_TEST)
+    add_subdirectory(test)
 endif()
 
