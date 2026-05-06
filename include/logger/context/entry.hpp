@@ -21,8 +21,9 @@ inline void POST_TASK(const TaskRunnerTag& tag, Task task) {
     EXECUTOR()->PostTask(tag, task);
 }
 
+// 因为池是单线程,投递顺序就是执行顺序
 inline void WAIT_TASK_IDLE(const TaskRunnerTag& tag) {
-    EXECUTOR()->PostTaskAndGetResult(tag, [](){}).wait();
+    EXECUTOR()->PostTaskAndGetResult(tag, [](){})->wait();
 }
 
 template<typename R, typename P>

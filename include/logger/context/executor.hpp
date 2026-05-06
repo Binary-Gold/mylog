@@ -40,7 +40,7 @@ namespace logger::ctx{
             return nullptr;
         }
             auto ret = task_runner->RunRetTask(std::forward<F>(f), std::forward<Args>(args)...);
-            return std::make_shared<std::future<std::result_of_t<F(Args...)>>>(std::move(ret));
+            return ret;
         }
     private:
         void PostDelayedTask_(Task task, const std::chrono::microseconds& delta);

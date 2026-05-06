@@ -41,11 +41,11 @@ namespace logger::ctx{
     }
 
     bool ThreadPool::Start() {
-        if (imp_->is_available_.load()) {
-            return true;
+        bool expected = false;
+        if (!imp_->is_available_.compare_exchange_strong(expected, true)) {
+            return true;  // 已启动
         }
         imp_->is_shutdown_.store(false);
-        imp_->is_available_.store(true);
         uint32_t thread_count = imp_->thread_count_.load();
         for (uint32_t i = 0; i < thread_count; ++i) {
             AddThread_();
@@ -53,11 +53,13 @@ namespace logger::ctx{
         return true;
     }
     void ThreadPool::Stop() {
-        if (imp_->is_available_.load()) {
-            imp_->is_shutdown_.store(true);
-            imp_->task_cv_.notify_all();
-            imp_->is_available_.store(false);
+        bool expected = true;
+        if (!imp_->is_available_.compare_exchange_strong(expected, false)) {
+            imp_->workers_.clear();  // 未启动，只清空 worker
+            return;
         }
+        imp_->is_shutdown_.store(true);
+        imp_->task_cv_.notify_all();
         imp_->workers_.clear();
     }
 

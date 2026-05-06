@@ -18,7 +18,8 @@ if(NOT TARGET mylog)
     target_include_directories(mylog INTERFACE "${MYLOG_INC}")
 
     # -- 传递依赖（静态库需要）--
-    find_library(FMT_LIB fmt  PATHS "${MYLOG_BLD}/third_party/fmt"  NO_DEFAULT_PATH REQUIRED)
+    # Debug 构建下 fmt 为 libfmtd.a；Release 为 libfmt.a
+    find_library(FMT_LIB NAMES fmt fmtd PATHS "${MYLOG_BLD}/third_party/fmt" NO_DEFAULT_PATH REQUIRED)
     find_library(Z_LIB   z    PATHS "${MYLOG_BLD}/third_party/zlib" NO_DEFAULT_PATH REQUIRED)
     find_package(Threads REQUIRED)
 endif()
@@ -34,11 +35,9 @@ endif()
 add_executable(test_main main.cpp)
 target_link_libraries(test_main PRIVATE mylog)
 
-# -- mylog_gtest_tests（gtest 单元测试）--
-add_executable(mylog_gtest_tests
-    test_space.cpp
-    test_mmap.cpp
-)
+# -- mylog_gtest_tests（自动收集所有 test_*.cpp）--
+file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
+add_executable(mylog_gtest_tests ${TEST_SOURCES})
 target_link_libraries(mylog_gtest_tests PRIVATE mylog GTest::gtest GTest::gtest_main)
 
 # 独立构建时补齐传递依赖
