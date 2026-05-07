@@ -4,9 +4,11 @@
 #include <cstdint>
 #include <string_view>
 
-#include "logger/using.hpp"
 
 namespace logger {
+    
+using MemoryBuf = std::string;
+
 struct SourceLocation {
     constexpr SourceLocation() = default;
     SourceLocation(std::string_view file_name_in, int32_t line_in, std::string_view func_name_in)
@@ -28,6 +30,14 @@ struct SourceLocation {
     int32_t line{0};
     std::string_view func_name;
 };
+
+#define LOGGER_LEVEL_TRACE 0
+#define LOGGER_LEVEL_DEBUG 1
+#define LOGGER_LEVEL_INFO 2
+#define LOGGER_LEVEL_WARN 3
+#define LOGGER_LEVEL_ERROR 4
+#define LOGGER_LEVEL_CRITICAL 5
+#define LOGGER_LEVEL_OFF 6
 
 enum class LogLevel {
   kTrace = LOGGER_LEVEL_TRACE,

@@ -2,7 +2,6 @@
 
 #include "logger/sink.hpp"
 #include "logger/formatter.hpp"
-#include "logger/using.hpp"
 
 namespace logger{
     struct ConsoleSink::Imp {

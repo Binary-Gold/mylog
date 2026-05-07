@@ -1,12 +1,16 @@
 #pragma once
 
 #include <string_view>
+#include <memory>
+#include <initializer_list>
 
 #include "logger/logger_config.hpp"
-#include "logger/using.hpp"
+#include "logger/sink.hpp"
 
 namespace logger {
 class LogHandle {
+    using LogSinkPtr = std::shared_ptr<LogSink>;
+    using LogSinkPtrList = std::initializer_list<LogSinkPtr>;
 public:
     explicit LogHandle(LogSinkPtrList sinks);
     explicit LogHandle(LogSinkPtr sink);

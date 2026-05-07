@@ -1,7 +1,6 @@
 #pragma once
 
 #include "logger/logger_config.hpp"
-#include "logger/using.hpp"
 
 namespace logger {
     class ForMatter {
