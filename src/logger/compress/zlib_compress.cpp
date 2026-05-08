@@ -10,7 +10,10 @@ namespace logger::compress {
         std::unique_ptr<z_stream, ZStreamInflateDeleter> decompress_stream_;
     };
 
-    ZlibCompress::ZlibCompress() : imp_(std::make_unique<Imp>()) {}
+    ZlibCompress::ZlibCompress() : imp_(std::make_unique<Imp>()) {
+        ResetStream_();
+        ResetUncompressStream_();
+    }
     ZlibCompress::~ZlibCompress() = default;
 
     size_t ZlibCompress::Compress(const void* input, size_t input_size, void* output, size_t output_size) {
@@ -74,11 +77,7 @@ namespace logger::compress {
 
         return output;
     }
-    void ZlibCompress::ResetStream() {
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-
+    void ZlibCompress::ResetStream_() {
         imp_->compress_stream_ = std::unique_ptr<z_stream, ZStreamDeflateDeleter>(new z_stream());
         imp_->compress_stream_->zalloc = Z_NULL;
         imp_->compress_stream_->zfree = Z_NULL;
@@ -96,10 +95,6 @@ namespace logger::compress {
     }
 
     void ZlibCompress::ResetUncompressStream_() {
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-
         imp_->decompress_stream_ = std::unique_ptr<z_stream, ZStreamInflateDeleter>(new z_stream());
         imp_->decompress_stream_->zalloc = Z_NULL;
         imp_->decompress_stream_->zfree = Z_NULL;

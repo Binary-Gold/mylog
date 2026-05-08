@@ -32,9 +32,11 @@ namespace logger::compress {
         size_t Compress(const void* input, size_t input_size, void* output, size_t output_size) override;
         size_t CompressedBound(size_t input_size) override;
         std::string Decompress(const void* data, size_t size) override;
-        void ResetStream() override;
+    
     private:
-        void ResetUncompressStream_();
+        void ResetStream_() override;
+        void ResetUncompressStream_() override;
+    
         struct Imp;
         std::unique_ptr<Imp> imp_;
     };

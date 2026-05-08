@@ -2,15 +2,15 @@
 
 #include <utility>
 
-#include "../../third_party/cryptopp/aes.h"
-#include "../../third_party/cryptopp/base64.h"
-#include "../../third_party/cryptopp/cryptlib.h"
-#include "../../third_party/cryptopp/eccrypto.h"
-#include "../../third_party/cryptopp/filters.h"
-#include "../../third_party/cryptopp/hex.h"
-#include "../../third_party/cryptopp/modes.h"
-#include "../../third_party/cryptopp/oids.h"
-#include "../../third_party/cryptopp/osrng.h"
+#include <aes.h>
+#include <base64.h>
+#include <cryptlib.h>
+#include <eccrypto.h>
+#include <filters.h>
+#include <hex.h>
+#include <modes.h>
+#include <oids.h>
+#include <osrng.h>
 
 namespace logger::crypt {
     struct AESCrypt::Imp {

@@ -30,20 +30,14 @@ namespace logger::compress {
         std::unique_ptr<ZSTD_DStream, ZStreamDecompressDeleter> decompress_stream_;
     };
 
+    ZstdCompress::ZstdCompress() : imp_(std::make_unique<Imp>()) {
+        ResetStream_();
+        ResetUncompressStream_();
+    }
     ZstdCompress::~ZstdCompress() = default;
 
     size_t ZstdCompress::Compress(const void* input, size_t input_size, void* output, size_t output_size) {
         if (!input || !output || input_size == 0) {
-            return 0;
-        }
-
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (!imp_->compress_stream_) {
-            ResetStream();
-        }
-        if (!imp_->compress_stream_) {
             return 0;
         }
 
@@ -65,16 +59,8 @@ namespace logger::compress {
             return {};
         }
 
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (IsZSTDCompressed(data, size)) {
-            ResetUncompressStream_();
-        } else if (!imp_->decompress_stream_) {
-            ResetUncompressStream_();
-        }
-        if (!imp_->decompress_stream_) {
-            return {};
+        if (!IsZSTDCompressed(data, size)) {
+            throw std::runtime_error("Decompress error");
         }
 
         ZSTD_inBuffer in_buffer = {data, size, 0};
@@ -97,16 +83,7 @@ namespace logger::compress {
         return output;
     }
 
-    void ZstdCompress::ResetStream() {
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (!imp_->compress_stream_) {
-            imp_->compress_stream_ = std::unique_ptr<ZSTD_CStream, ZStreamCompressDeleter>(ZSTD_createCStream());
-        }
-        if (!imp_->compress_stream_) {
-            return;
-        }
+    void ZstdCompress::ResetStream_() {
         const size_t ret = ZSTD_initCStream(imp_->compress_stream_.get(), kZstdCompressionLevel);
         if (ZSTD_isError(ret) != 0) {
             imp_->compress_stream_.reset();
@@ -114,15 +91,6 @@ namespace logger::compress {
     }
 
     void ZstdCompress::ResetUncompressStream_() {
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (!imp_->decompress_stream_) {
-            imp_->decompress_stream_ = std::unique_ptr<ZSTD_DStream, ZStreamDecompressDeleter>(ZSTD_createDStream());
-        }
-        if (!imp_->decompress_stream_) {
-            return;
-        }
         const size_t ret = ZSTD_initDStream(imp_->decompress_stream_.get());
         if (ZSTD_isError(ret) != 0) {
             imp_->decompress_stream_.reset();
