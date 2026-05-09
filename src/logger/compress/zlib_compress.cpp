@@ -26,6 +26,7 @@ namespace logger::compress {
         if (!imp_->compress_stream_) {
             return 0;
         }
+        deflateReset(imp_->compress_stream_.get());
         imp_->compress_stream_->next_in = (Bytef*)input;
         imp_->compress_stream_->avail_in = static_cast<uInt>(input_size);
 
@@ -43,7 +44,7 @@ namespace logger::compress {
         return out_len;
     }
     size_t ZlibCompress::CompressedBound(size_t input_size) {
-        return input_size + 10;
+        return deflateBound(nullptr, static_cast<uLong>(input_size));
     }
     std::string ZlibCompress::Decompress(const void* data, size_t size) {
         if (!data || size == 0) {
@@ -61,6 +62,7 @@ namespace logger::compress {
         }
 
         std::string output;
+        inflateReset(imp_->decompress_stream_.get());
         imp_->decompress_stream_->next_in = reinterpret_cast<Bytef*>(const_cast<void*>(data));
         imp_->decompress_stream_->avail_in = static_cast<uInt>(size);
 

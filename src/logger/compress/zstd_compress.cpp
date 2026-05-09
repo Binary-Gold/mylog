@@ -41,9 +41,10 @@ namespace logger::compress {
             return 0;
         }
 
+        ResetStream_();
         ZSTD_inBuffer in_buffer = {input, input_size, 0};
         ZSTD_outBuffer out_buffer = {output, output_size, 0};
-        const size_t ret = ZSTD_compressStream2(imp_->compress_stream_.get(), &out_buffer, &in_buffer, ZSTD_e_flush);
+        const size_t ret = ZSTD_compressStream2(imp_->compress_stream_.get(), &out_buffer, &in_buffer, ZSTD_e_end);
         if (ZSTD_isError(ret) != 0) {
             return 0;
         }
@@ -63,6 +64,7 @@ namespace logger::compress {
             throw std::runtime_error("Decompress error");
         }
 
+        ResetUncompressStream_();
         ZSTD_inBuffer in_buffer = {data, size, 0};
         std::string output;
         output.reserve(10 * 1024);
@@ -84,6 +86,7 @@ namespace logger::compress {
     }
 
     void ZstdCompress::ResetStream_() {
+        imp_->compress_stream_.reset(ZSTD_createCStream());
         const size_t ret = ZSTD_initCStream(imp_->compress_stream_.get(), kZstdCompressionLevel);
         if (ZSTD_isError(ret) != 0) {
             imp_->compress_stream_.reset();
@@ -91,6 +94,7 @@ namespace logger::compress {
     }
 
     void ZstdCompress::ResetUncompressStream_() {
+        imp_->decompress_stream_.reset(ZSTD_createDStream());
         const size_t ret = ZSTD_initDStream(imp_->decompress_stream_.get());
         if (ZSTD_isError(ret) != 0) {
             imp_->decompress_stream_.reset();

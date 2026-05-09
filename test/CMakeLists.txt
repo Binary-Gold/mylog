@@ -22,11 +22,14 @@ if(NOT TARGET mylog)
     target_include_directories(mylog INTERFACE
         "${MYLOG_INC}"
         "${MYLOG_THIRD}/fmt/include"
+        "${MYLOG_THIRD}/zlib"
+        "${MYLOG_THIRD}/zstd/lib"
     )
     target_compile_definitions(mylog INTERFACE ENABLE_LOG=1)
 
     find_library(FMT_LIB NAMES fmt fmtd PATHS "${MYLOG_BLD}/third_party/fmt" NO_DEFAULT_PATH REQUIRED)
     find_library(Z_LIB   z    PATHS "${MYLOG_BLD}/third_party/zlib" NO_DEFAULT_PATH REQUIRED)
+    find_library(ZSTD_LIB zstd PATHS "${MYLOG_BLD}/third_party/zstd/build/cmake/lib" NO_DEFAULT_PATH REQUIRED)
     find_package(Threads REQUIRED)
 endif()
 
@@ -42,7 +45,7 @@ macro(add_unit_test name)
     add_executable("ut_${name}" "unit/${name}.cpp")
     target_link_libraries("ut_${name}" PRIVATE mylog GTest::gtest GTest::gtest_main)
     if(NOT TARGET fmt::fmt)
-        target_link_libraries("ut_${name}" PRIVATE "${FMT_LIB}" "${Z_LIB}" Threads::Threads)
+        target_link_libraries("ut_${name}" PRIVATE "${FMT_LIB}" "${Z_LIB}" "${ZSTD_LIB}" Threads::Threads)
     endif()
     add_test(NAME "unit/${name}" COMMAND "ut_${name}")
 endmacro()
@@ -53,7 +56,7 @@ macro(add_manual_test name)
     add_executable("manual_${name}" "manual/${name}.cpp")
     target_link_libraries("manual_${name}" PRIVATE mylog)
     if(NOT TARGET fmt::fmt)
-        target_link_libraries("manual_${name}" PRIVATE "${FMT_LIB}" "${Z_LIB}" Threads::Threads)
+        target_link_libraries("manual_${name}" PRIVATE "${FMT_LIB}" "${Z_LIB}" "${ZSTD_LIB}" Threads::Threads)
     endif()
     add_test(NAME "manual/${name}" COMMAND "manual_${name}")
 endmacro()
