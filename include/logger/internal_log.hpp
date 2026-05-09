@@ -6,11 +6,11 @@
 #include <fmt/core.h>
 
 #define LOG_INFO(...) \
-    fmt::print("[INFO] [{} {}] {} {}", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
+    fmt::print("[INFO] [{} {}] {} {}\n", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
 #define LOG_WARN(...) \
-    fmt::print("[WARN] [{} {}] {} {}", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
+    fmt::print("[WARN] [{} {}] {} {}\n", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
 #define LOG_ERROR(...) \
-    fmt::print("[ERROR] [{} {}] {} {}", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
+    fmt::print("[ERROR] [{} {}] {} {}\n", __FILE__, __LINE__, std::chrono::system_clock::now(), fmt::format(__VA_ARGS__))
 
 #else
 

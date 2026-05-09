@@ -80,7 +80,11 @@ if(LIB_SOURCES STREQUAL "")
 endif()
 
 add_library(mylog STATIC ${LIB_SOURCES})
-target_include_directories(mylog PUBLIC "${ROOT_DIR}/include")
+target_include_directories(mylog PUBLIC
+    "${ROOT_DIR}/include"
+    "${ROOT_DIR}/third_party/zlib"
+    "${ROOT_DIR}/third_party/zstd/lib"
+)
 target_link_libraries(mylog PUBLIC fmt::fmt)
 target_link_libraries(mylog PRIVATE zlibstatic libzstd_static)
 target_compile_definitions(mylog PUBLIC ENABLE_LOG=1)

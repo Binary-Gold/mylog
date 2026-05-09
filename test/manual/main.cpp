@@ -1,17 +1,20 @@
+#include <cstddef>
 #include <iostream>
+#include <string>
 
-#include "logger/internal_log.hpp"
-#include "logger/compress/zlib_compress.hpp"
+#include "logger/logger_config.hpp"
+#include "logger/logger_handle.hpp"
+#include "logger/sink.hpp"
 
 int main() {
+    auto s1 = std::make_shared<logger::ConsoleSink>();
+    auto s2 = std::make_shared<logger::ConsoleSink>();
 
-    // LOG_INFO("aaa\n");
-    logger::compress::ZlibCompress tmp;
-    std::string s = "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc";
-    std::string ret;
-    ret.resize(tmp.CompressedBound(s.size()));
-    size_t real = tmp.Compress(s.data(), s.size(), ret.data(), ret.size());
-    ret.resize(real);
-    std::cout << s.size() << " " << real << std::endl;
+
+    logger::LogHandle handle{s1, s2};
+    logger::SourceLocation sourcelocation(__FILE__, __LINE__, __FUNCTION__);
+
+    handle.Log(logger::LogLevel::kInfo, sourcelocation, "hello word\n");
+
     return 0;
 }

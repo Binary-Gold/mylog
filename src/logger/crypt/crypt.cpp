@@ -1,7 +1,3 @@
-#include "logger/crypt/crypt.hpp"
-
-#include <stdexcept>
-
 #include <base64.h>
 #include <cryptlib.h>
 #include <eccrypto.h>
@@ -9,6 +5,11 @@
 #include <hex.h>
 #include <oids.h>
 #include <osrng.h>
+
+#include <stdexcept>
+
+#include "logger/crypt/crypt.hpp"
+
 
 namespace logger::crypt {
     using CryptoPP::byte;

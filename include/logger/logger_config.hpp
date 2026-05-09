@@ -50,8 +50,9 @@ enum class LogLevel {
 };
 
 struct LogMsg {
-    LogMsg(SourceLocation loc, LogLevel lvl, std::string_view msg);
-    LogMsg(LogLevel lvl, std::string_view msg);
+    LogMsg(SourceLocation loc, LogLevel lvl, std::string_view msg) : location(std::move(loc)), level(lvl), message(std::move(msg)) {}
+
+    LogMsg(LogLevel lvl, std::string_view msg) : LogMsg(SourceLocation{}, lvl, msg) {}
 
     LogMsg(const LogMsg& other) = default;
     LogMsg& operator=(const LogMsg& other) = default;

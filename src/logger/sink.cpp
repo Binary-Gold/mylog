@@ -5,7 +5,7 @@
 
 namespace logger{
     struct ConsoleSink::Imp {
-        std::unique_ptr<ForMatter> formatter_;
+        std::unique_ptr<ForMatter> formatter_ = std::make_unique<DefaultFormatter>();
     };
 
     ConsoleSink::ConsoleSink() : imp_(std::make_unique<Imp>()) {}

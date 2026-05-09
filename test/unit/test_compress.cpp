@@ -28,6 +28,8 @@ public:
 };
 
 using CompressTypes = ::testing::Types<compress::ZlibCompress, compress::ZstdCompress>;
+// using CompressTypes = ::testing::Types<compress::ZstdCompress>;
+
 TYPED_TEST_SUITE(CompressTest, CompressTypes);
 
 // ==================== 基础 Compress ====================

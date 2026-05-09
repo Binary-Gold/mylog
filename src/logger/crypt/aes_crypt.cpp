@@ -1,7 +1,3 @@
-#include "logger/crypt/aes_crypt.hpp"
-
-#include <utility>
-
 #include <aes.h>
 #include <base64.h>
 #include <cryptlib.h>
@@ -11,6 +7,10 @@
 #include <modes.h>
 #include <oids.h>
 #include <osrng.h>
+
+#include <utility>
+
+#include "logger/crypt/aes_crypt.hpp"
 
 namespace logger::crypt {
     struct AESCrypt::Imp {

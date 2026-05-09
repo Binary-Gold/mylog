@@ -20,12 +20,7 @@ namespace logger::compress {
         if (!input || !output) {
             return 0;
         }
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (!imp_->compress_stream_) {
-            return 0;
-        }
+
         deflateReset(imp_->compress_stream_.get());
         imp_->compress_stream_->next_in = (Bytef*)input;
         imp_->compress_stream_->avail_in = static_cast<uInt>(input_size);
@@ -48,16 +43,6 @@ namespace logger::compress {
     }
     std::string ZlibCompress::Decompress(const void* data, size_t size) {
         if (!data || size == 0) {
-            return {};
-        }
-
-        if (!imp_) {
-            imp_ = std::make_unique<Imp>();
-        }
-        if (!imp_->decompress_stream_) {
-            ResetUncompressStream_();
-        }
-        if (!imp_->decompress_stream_) {
             return {};
         }
 

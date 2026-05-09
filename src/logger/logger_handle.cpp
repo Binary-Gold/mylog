@@ -1,12 +1,13 @@
 #include <atomic>
 #include <vector>
 
+#include "logger/logger_config.hpp"
 #include "logger/logger_handle.hpp"
 #include "logger/sink.hpp"
 
 namespace logger {
     struct LogHandle::Imp {
-        std::atomic<LogLevel> level_;
+        std::atomic<LogLevel> level_ = LogLevel::kInfo;
         std::vector<LogSinkPtr> sinks_;
     };
 
@@ -18,6 +19,7 @@ namespace logger {
     LogHandle::LogHandle(LogSinkPtr sink) : imp_(std::make_unique<Imp>()) {
         imp_->sinks_.push_back(std::move(sink));
     }
+    LogHandle::~LogHandle() = default;
 
     void LogHandle::SetLevel(LogLevel level) {
         imp_->level_ = level;

@@ -1,9 +1,9 @@
 #include <cstring>
 #include <string>
 
+#include "logger/internal_log.hpp"
 #include "logger/compress/zstd_compress.hpp"
 
-// todo 研究一下
 namespace logger::compress {
     namespace {
         constexpr int kZstdCompressionLevel = 5;

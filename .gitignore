@@ -1,8 +1,12 @@
 # Build / IDE
 build/
+test/build/
 out/
 cmake-build-*/
 .vs/
+.vscode/
+.cache/
+compile_commands.json
 *.out
 *.exe
 *.o
