@@ -77,14 +77,14 @@ namespace logger::ctx {
         }
     }
 
-    RepeatedTaskId ExecutorTimer::PostRepeatedTask(Task task, const std::chrono::microseconds& delta, uint64_t repeat_num) {
+    RepeatedTaskId ExecutorTimer::PostRepeatedTask(Task task, const std::chrono::microseconds& delta, int repeat_num) {
         RepeatedTaskId id = GetNextRepeatedTaskId();
         imp_->repeated_id_state_set_.insert(id);
         PostRepeatedTask_(std::move(task), delta, id, repeat_num);
         return id;
     }
 
-    void ExecutorTimer::PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num) {
+    void ExecutorTimer::PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, int repeat_num) {
         if (imp_->repeated_id_state_set_.find(task_id) == imp_->repeated_id_state_set_.end() || repeat_num == 0) {
             return;
         }
@@ -101,7 +101,7 @@ namespace logger::ctx {
         }
     }
 
-    void ExecutorTimer::PostTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num) {
+    void ExecutorTimer::PostTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, int repeat_num) {
         PostRepeatedTask_(std::move(task), delta, task_id, repeat_num);
     }
 

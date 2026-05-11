@@ -26,12 +26,12 @@ namespace logger::ctx {
         void Stop();
 
         void PostDelayedTask(Task task, const std::chrono::microseconds& delta);
-        RepeatedTaskId PostRepeatedTask(Task task, const std::chrono::microseconds& delta, uint64_t repeat_num);
+        RepeatedTaskId PostRepeatedTask(Task task, const std::chrono::microseconds& delta, int repeat_num);
         void CancelRepeatedTask(RepeatedTaskId task_id);
     private:
         void Run_();
-        void PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num);
-        void PostTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, uint64_t repeat_num);
+        void PostRepeatedTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, int repeat_num);
+        void PostTask_(Task task, const std::chrono::microseconds& delta, RepeatedTaskId task_id, int repeat_num);
         RepeatedTaskId GetNextRepeatedTaskId();
 
         struct Imp;

@@ -55,7 +55,7 @@ private:
 
     void CacheToFile_();
 
-    std::filesystem::path GetFilePath_();
+    std::filesystem::path UpdateFilePath_();
 
     void ElimateFiles_();
 

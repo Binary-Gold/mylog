@@ -32,6 +32,6 @@ private:
 };
 
 uint64_t GetPageSize();
+size_t GetFileSize(const std::filesystem::path& file_path);
 }  // namespace logger::fs
-
 #endif
