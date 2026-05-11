@@ -14,11 +14,11 @@ std::int32_t GetThreadId() {
     return static_cast<std::int32_t>(::syscall(SYS_gettid));
 }
 
-bool LocalCalendarTime(std::time_t utc_seconds, std::tm* out) {
+bool LocalCalendarTime(std::time_t* utc_seconds, std::tm* out) {
     if (!out) {
         return false;
     }
-    return ::localtime_r(&utc_seconds, out) != nullptr;
+    return ::localtime_r(utc_seconds, out) != nullptr;
 }
 
 } // namespace logger::utils

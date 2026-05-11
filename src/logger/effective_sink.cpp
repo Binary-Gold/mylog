@@ -1,103 +1,123 @@
-#if 0
-
 #include <atomic>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
 #include "logger/effective_sink.hpp"
-#include "logger/compress/zlib_compress.hpp"
+#include "logger/compress/zstd_compress.hpp"
 #include "logger/crypt/aes_crypt.hpp"
 #include "logger/crypt/crypt.hpp"
 #include "logger/proto/effective_formatter.hpp"
 #include "logger/mmap/mmap.hpp"
 #include "logger/utils/linux_ids.hpp"
+#include "logger/context/entry.hpp"
+#include "logger/utils/linux_ids.hpp"
+#include "logger/utils/filestream_linux.hpp"
 
 namespace logger {
 
 struct EffectiveSink::Imp {
-    EffectiveSink::Config config_;
-    logger::ctx::TaskRunnerTag task_runner_{};
+    Config config_;
+    ctx::TaskRunnerTag task_runner_tag_;
     std::unique_ptr<EffectiveFormatter> formatter_;
-
-    std::string client_pub_key_;
-    std::unique_ptr<logger::crypt::Logcrypt> crypt_;
-    std::unique_ptr<logger::compress::Compression> compress_;
-
-    std::unique_ptr<logger::mmap::MMapAux> master_cache_;
-    std::unique_ptr<logger::mmap::MMapAux> slave_cache_;
-    std::atomic<bool> is_slave_free_{false};
-
+    std::unique_ptr<compress::ZstdCompress> compress_;
+    std::unique_ptr<crypt::AESCrypt> crypt_;
+    std::unique_ptr<mmap::MMapAux> master_;
+    std::unique_ptr<mmap::MMapAux> slave_;
+    std::atomic<bool> slave_free_{true};
+    std::filesystem::path log_file_path_;
 };
 
 EffectiveSink::EffectiveSink(const Config& config) : imp_(std::make_unique<Imp>()) {
     imp_->config_ = std::move(config);
 
-    LOG_INFO("EffectiveSink: dir={}, prefix={}, pub_key={}, interval={}, single_size={}, total_size={}",
-        imp_->config_.dir.string(), imp_->config_.prefix, imp_->config_.pub_key, imp_->config_.interval.count(),
-        imp_->config_.single_size.count(), imp_->config_.total_size.count());
-
     if (!std::filesystem::exists(imp_->config_.dir)) {
         std::filesystem::create_directories(imp_->config_.dir);
     }
-
-    imp_->task_runner_ = NEW_TASK_RUNNER(6666);
+    imp_->task_runner_tag_ = NEW_TASK_RUNNER(0);
     imp_->formatter_ = std::make_unique<EffectiveFormatter>();
+    imp_->compress_ = std::make_unique<compress::ZstdCompress>();
+    
+    auto [my_pri, my_pub] = crypt::GenECDHKey();
+    auto peer_pub = crypt::HexKeyToBinary(imp_->config_.pub_key);
+    auto shared = crypt::GenECDHSharedSecret(my_pri, peer_pub);
+    imp_->crypt_ =  std::make_unique<crypt::AESCrypt>(shared);
 
-    auto ecdh_key = logger::crypt::GenECDHKey();
-    auto client_pri = std::get<0>(ecdh_key);
-    imp_->client_pub_key_ = std::get<1>(ecdh_key);
-    LOG_INFO("EffectiveSink: client pub size {}", imp_->client_pub_key_.size());
-    std::string svr_pub_key_bin = logger::crypt::HexKeyToBinary(imp_->config_.pub_key);
-    std::string shared_secret = logger::crypt::GenECDHSharedSecret(client_pri, svr_pub_key_bin);
-    imp_->crypt_ = std::make_unique<logger::crypt::AESCrypt>(shared_secret);
+    imp_->master_ = std::make_unique<mmap::MMapAux>(imp_->config_.dir / "master_cache");
+    imp_->slave_ = std::make_unique<mmap::MMapAux>(imp_->config_.dir / "slave_cache");
 
-    imp_->compress_ = std::make_unique<logger::compress::ZlibCompress>();
+    if (!imp_->slave_->Empty()) {
+        imp_->slave_free_.store(false);
 
-    imp_->master_cache_ = std::make_unique<MMapAux>(imp_->config_.dir / "master_cache");
-    imp_->slave_cache_ = std::make_unique<MMapAux>(imp_->config_.dir / "slave_cache");
-    if (!imp_->master_cache_ || !imp_->slave_cache_) {
-        throw std::runtime_error("EffectiveSink::EffectiveSink: create mmap failed");
     }
-    if (!imp_->slave_cache_->Empty()) {
-        imp_->is_slave_free_.store(false);
-        PrepareToFile_();
-        WAIT_TASK_IDLE(imp_->task_runner_);
-    }
-    if (!imp_->master_cache->Empty()) {
-        if (imp_->is_slave_free_.load()) {
-            imp_->is_slave_free_.store(false);
-            SwapCache_();
-        }
-        PrepareToFile_();
-    }
+
 }
 
 EffectiveSink::~EffectiveSink() = default;
 
-void EffectiveSink::Log(const LogMsg&) {}
-
-void EffectiveSink::SetForMatter(std::unique_ptr<ForMatter> formatter) {
-    (void)formatter;
-}
-
-void EffectiveSink::Flush() {}
-} // namespace logger
-
-void EffectiveSink::SwapCache_() {
-
-}
-
 void EffectiveSink::PrepareToFile_() {
-  POST_TASK(imp_->task_runner_, [this]() { CacheToFile_(); });
+  POST_TASK(imp_->task_runner_tag_, [this]() { CacheToFile_(); });
 }
 
 void EffectiveSink::CacheToFile_() {
-    if (imp_->is_slave_free_.load()) {
-        return;
-    }
-    if (imp_->slave_cache_->Empty()) {
-        imp_->is_slave_free_.store(true);
+    if (imp_->slave_free_.load()) {
         return;
     }
 
+    if (imp_->slave_->Empty()) {
+        imp_->slave_free_.store(true);
+        return;
+    }
+
+    ChunkHeader chunk_header;
+    chunk_header.size = imp_->slave_->Size();
+    memcpy(chunk_header.pub_key, imp_->config_.pub_key.data(), imp_->config_.pub_key.size());
+    // 写入块头与缓存内容
+    auto file_path = GetFilePath_();
+    std::ofstream ofs(file_path, std::ios::binary | std::ios::app);
+    ofs.write(reinterpret_cast<char*>(&chunk_header), sizeof(chunk_header));
+    ofs.write(reinterpret_cast<char*>(imp_->slave_->Data()), chunk_header.size);
+    ofs.close();
+
+    imp_->slave_->Clear();
+    imp_->slave_free_.store(true);
 }
 
-#endif
+std::filesystem::path EffectiveSink::GetFilePath_() {
+  // {prefix}_{datetime}.log or {prefix}_{datetime}_{index}.log
+  auto GetDateTimePath = [this]() -> std::filesystem::path {
+    std::time_t now = std::time(nullptr);
+    std::tm tm{};
+    if (!logger::utils::LocalCalendarTime(&now, &tm)) {
+        tm = {};
+    }
+    char time_buf[32] = {0};
+    std::strftime(time_buf, sizeof(time_buf), "%Y%m%d%H%M%S", &tm);
+    return (imp_->config_.dir / (imp_->config_.prefix + "_" + time_buf));
+  };
+
+  if (imp_->log_file_path_.empty()) {
+    imp_->log_file_ = std::make_unique<fs::Fd>(GetDateTimePath().string() + ".log");
+  } else {
+    bytes single_bytes = space_cast<bytes>(imp_->config_.single_size);
+    if (imp_->log_file_->GetFileSize() > single_bytes.count()) {
+      auto file_path = GetDateTimePath().string() + ".log";
+      if (std::filesystem::exists(file_path)) {
+        // 重名就加下标
+        int index = 0;
+        for (auto& p : std::filesystem::directory_iterator(imp_->config_.dir)) {
+          if (p.path().filename().string().find(date_time_path.string()) != std::string::npos) {
+            ++index;
+          }
+        }
+        log_file_ = date_time_path.string() + "_" + std::to_string(index) + ".log";
+      } else {
+        log_file_ = file_path;
+      }
+    }
+  }
+
+  return log_file_;
+}
+
+}

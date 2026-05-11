@@ -9,6 +9,23 @@
 #include "logger/utils/space.hpp"
 
 namespace logger {
+struct ChunkHeader {
+  static constexpr uint64_t kMagic = 0xdeadbeefdada1100;
+  uint64_t magic;
+  uint64_t size;
+  char pub_key[128];
+
+  ChunkHeader() : magic(kMagic), size(0) {}
+};
+
+struct ItemHeader {
+  static constexpr uint32_t kMagic = 0xbe5fba11;
+  uint32_t magic;
+  uint32_t size;
+
+  ItemHeader() : magic(kMagic), size(0) {}
+};
+
 class EffectiveSink final : public LogSink {
 public:
     struct Config {

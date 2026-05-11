@@ -13,7 +13,7 @@ std::int32_t GetProcessId();
 std::int32_t GetThreadId();
 
 // Linux/POSIX：UTC 秒级时间戳 → 本地日历时间（localtime_r）。成功返回 true。
-bool LocalCalendarTime(std::time_t utc_seconds, std::tm* out);
+bool LocalCalendarTime(std::time_t* utc_seconds, std::tm* out);
 
 } // namespace logger::utils
 

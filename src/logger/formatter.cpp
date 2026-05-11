@@ -10,7 +10,7 @@ namespace logger {
         constexpr char kLogLevelStr[] = "TDIWEF";
         std::time_t now = std::time(nullptr);
         std::tm tm{};
-        if (!logger::utils::LocalCalendarTime(now, &tm)) {
+        if (!logger::utils::LocalCalendarTime(&now, &tm)) {
             tm = {};
         }
         char time_buf[32] = {0};
