@@ -23,6 +23,7 @@ namespace logger {
 
 struct EffectiveSink::Imp {
     Config config_;
+    std::string client_pub_key_;
     ctx::TaskRunnerTag task_runner_tag_ = NEW_TASK_RUNNER(0);
     std::unique_ptr<ForMatter> formatter_ = std::make_unique<EffectiveFormatter>();
     std::unique_ptr<compress::ZstdCompress> compress_ = std::make_unique<compress::ZstdCompress>();
@@ -44,6 +45,7 @@ EffectiveSink::EffectiveSink(const Config& config) : imp_(std::make_unique<Imp>(
     }
     
     auto [my_pri, my_pub] = crypt::GenECDHKey();
+    imp_->client_pub_key_ = my_pub;
     auto peer_pub = crypt::HexKeyToBinary(imp_->config_.pub_key);
     auto shared = crypt::GenECDHSharedSecret(my_pri, peer_pub);
     imp_->crypt_ =  std::make_unique<crypt::AESCrypt>(shared);
@@ -150,7 +152,7 @@ void EffectiveSink::CacheToFile_() {
 
     ChunkHeader chunk_header;
     chunk_header.size = imp_->slave_->Size();
-    memcpy(chunk_header.pub_key, imp_->config_.pub_key.data(), imp_->config_.pub_key.size());
+    memcpy(chunk_header.pub_key, imp_->client_pub_key_.data(), imp_->client_pub_key_.size());
 
     // 写入块头与缓存内容
     auto file_path = UpdateFilePath_();

@@ -89,7 +89,8 @@ namespace logger::ctx {
             return;
         }
         task();
-        Task func = std::bind(&ExecutorTimer::PostTask_, this, std::move(task), delta, task_id, repeat_num - 1);
+        int next_num = repeat_num < 0 ? repeat_num : repeat_num - 1;
+        Task func = std::bind(&ExecutorTimer::PostTask_, this, std::move(task), delta, task_id, next_num);
         InternalS s;
         s.time_point = std::chrono::high_resolution_clock::now() + delta;
         s.repeated_id = task_id;
