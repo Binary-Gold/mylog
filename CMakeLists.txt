@@ -18,10 +18,12 @@ set(ROOT_DIR "${PROJECT_SOURCE_DIR}")
 
 add_subdirectory(third_party/fmt)
 set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/zlib)
 
 set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
 set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/zstd/build/cmake)
 
 if(MYLOG_USE_PROTOBUF)
@@ -110,3 +112,35 @@ if(MYLOG_BUILD_TESTS)
 endif()
 
 add_subdirectory(tools)
+
+# ======== Installation ========
+include(GNUInstallDirs)
+
+set(MYLOG_MERGE_INPUTS "$<TARGET_FILE:mylog>;$<TARGET_FILE:fmt>;$<TARGET_FILE:zlibstatic>;$<TARGET_FILE:libzstd_static>;$<TARGET_FILE:cryptopp>")
+set(MYLOG_MERGE_DEPS mylog fmt zlibstatic libzstd_static cryptopp)
+
+if(MYLOG_USE_PROTOBUF)
+    list(APPEND MYLOG_MERGE_INPUTS "$<TARGET_FILE:protobuf::libprotobuf-lite>")
+    list(APPEND MYLOG_MERGE_DEPS protobuf::libprotobuf-lite)
+endif()
+
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/libmylog_full.a
+    COMMAND ${CMAKE_COMMAND}
+        -DINPUT="${MYLOG_MERGE_INPUTS}"
+        -DOUTPUT="${CMAKE_BINARY_DIR}/libmylog_full.a"
+        -DAR_TOOL="${CMAKE_AR}"
+        -P "${ROOT_DIR}/cmake/merge_archives.cmake"
+    DEPENDS ${MYLOG_MERGE_DEPS}
+    COMMENT "Merging static libraries into libmylog_full.a"
+)
+add_custom_target(mylog_merged ALL DEPENDS ${CMAKE_BINARY_DIR}/libmylog_full.a)
+
+install(FILES ${CMAKE_BINARY_DIR}/libmylog_full.a
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RENAME libmylog.a
+)
+install(DIRECTORY include/logger
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+)
