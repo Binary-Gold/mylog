@@ -164,6 +164,68 @@ Result MeasureConcurrent(EffectiveSink& sink, const std::string& label,
     return r;
 }
 
+// 持续压力测试：跑 duration_sec 秒，每 interval_sec 秒输出一次窗口平均吞吐
+void MeasureSustained(EffectiveSink& sink, const std::string& label,
+                      int duration_sec, int interval_sec,
+                      const std::string& msg, int n_threads = 1) {
+    // warmup 1s
+    {
+        std::atomic<bool> warm_stop{false};
+        std::vector<std::thread> warm;
+        for (int t = 0; t < n_threads; ++t)
+            warm.emplace_back([&]() {
+                while (!warm_stop.load()) {
+                    LogMsg m(LogLevel::kDebug, msg);
+                    sink.Log(m);
+                }
+            });
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        warm_stop.store(true);
+        for (auto& th : warm) th.join();
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<uint64_t> total_ops{0};
+
+    auto worker = [&]() {
+        while (!stop.load(std::memory_order_relaxed)) {
+            LogMsg m(LogLevel::kDebug, msg);
+            sink.Log(m);
+            total_ops.fetch_add(1, std::memory_order_relaxed);
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < n_threads; ++t)
+        threads.emplace_back(worker);
+
+    std::cout << "  " << label << " (" << n_threads << " thr, " << duration_sec << "s):\n";
+    std::cout << "  " << std::setw(8) << "窗口" << std::setw(12) << "ops" << std::setw(14) << "ops/s\n";
+
+    uint64_t prev = 0;
+    auto t_start = Clock::now();
+    int windows = duration_sec / interval_sec;
+    for (int w = 1; w <= windows; ++w) {
+        auto t_wait = t_start + std::chrono::seconds(w * interval_sec);
+        std::this_thread::sleep_until(t_wait);
+        uint64_t cur = total_ops.load(std::memory_order_relaxed);
+        uint64_t win_ops = cur - prev;
+        double win_rate = static_cast<double>(win_ops) / interval_sec;
+        std::cout << "  " << std::setw(5) << (w * interval_sec) << "s"
+                  << std::setw(12) << win_ops
+                  << std::setw(12) << static_cast<int>(win_rate) << "/s\n";
+        prev = cur;
+    }
+
+    stop.store(true, std::memory_order_relaxed);
+    for (auto& th : threads) th.join();
+
+    double total_elapsed = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - t_start).count()) / 1'000'000.0;
+    uint64_t final_ops = total_ops.load();
+    std::cout << "  平均: " << static_cast<int>(final_ops / total_elapsed) << " ops/s\n\n";
+}
+
 void CleanDir(const std::filesystem::path& dir) {
     std::error_code ec;
     for (auto& p : std::filesystem::directory_iterator(dir, ec)) {
@@ -233,6 +295,46 @@ int main() {
         auto r = MeasureConcurrent(sink,
                                    std::to_string(threads) + " threads", 8000, threads, medium);
         Print(r);
+        sink.Flush();
+        CleanDir(dir);
+    }
+
+    // ==================== 持续吞吐 (30s, 每5s报告) ====================
+    std::cout << "\n  === 持续吞吐 (30s 连续写入, 每5s窗口平均) ===\n\n";
+
+    {
+        auto dir = base / "sust_small";
+        auto cfg = MakeConfig(dir, "sust_small");
+        EffectiveSink sink(cfg);
+        MeasureSustained(sink, "small  (~50B)", 30, 5, small, 1);
+        sink.Flush();
+        CleanDir(dir);
+    }
+
+    {
+        auto dir = base / "sust_medium";
+        auto cfg = MakeConfig(dir, "sust_medium");
+        EffectiveSink sink(cfg);
+        MeasureSustained(sink, "medium (~200B)", 30, 5, medium, 1);
+        sink.Flush();
+        CleanDir(dir);
+    }
+
+    {
+        auto dir = base / "sust_large";
+        auto cfg = MakeConfig(dir, "sust_large");
+        EffectiveSink sink(cfg);
+        MeasureSustained(sink, "large  (~380B)", 30, 5, large, 1);
+        sink.Flush();
+        CleanDir(dir);
+    }
+
+    // 多线程持续
+    {
+        auto dir = base / "sust_mt4";
+        auto cfg = MakeConfig(dir, "sust_mt4");
+        EffectiveSink sink(cfg);
+        MeasureSustained(sink, "medium (~200B)", 30, 5, medium, 4);
         sink.Flush();
         CleanDir(dir);
     }
